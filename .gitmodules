@@ -1,6 +1,3 @@
 [submodule "submodule/wxWidgets"]
 	path = submodule/wxWidgets
 	url = https://github.com/wxWidgets/wxWidgets.git
-[submodule "submodule/InnoSetup"]
-	path = submodule/InnoSetup
-	url = https://github.com/HeliumProject/InnoSetup.git
