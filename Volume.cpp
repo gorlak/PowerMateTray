@@ -39,14 +39,14 @@ void IncreaseVolume()
 {
 	float level;
 	pAudioEndpointVolume->GetMasterVolumeLevel(&level);
-	pAudioEndpointVolume->SetMasterVolumeLevel(level + 0.5f, NULL);
+	pAudioEndpointVolume->SetMasterVolumeLevel(level + 1.f, NULL);
 }
 
 void DecreaseVolume()
 {
 	float level;
 	pAudioEndpointVolume->GetMasterVolumeLevel(&level);
-	pAudioEndpointVolume->SetMasterVolumeLevel(level - 0.5f, NULL);
+	pAudioEndpointVolume->SetMasterVolumeLevel(level - 1.f, NULL);
 }
 
 void ToggleMute()

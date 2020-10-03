@@ -1,5 +1,7 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30523.141
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PowerMateTray", "PowerMateTray.vcxproj", "{78E67146-D146-4815-AD92-46922B327547}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A0A3F32A-84BD-4397-B118-0AB7A42F8BE1}"
@@ -10,20 +12,31 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
 		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|Win32 = Release|Win32
 		Release|x64 = Release|x64
+		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{78E67146-D146-4815-AD92-46922B327547}.Debug|Win32.ActiveCfg = Debug|Win32
+		{78E67146-D146-4815-AD92-46922B327547}.Debug|Win32.Build.0 = Debug|Win32
 		{78E67146-D146-4815-AD92-46922B327547}.Debug|x64.ActiveCfg = Debug|x64
 		{78E67146-D146-4815-AD92-46922B327547}.Debug|x64.Build.0 = Debug|x64
+		{78E67146-D146-4815-AD92-46922B327547}.Debug|x86.ActiveCfg = Debug|Win32
+		{78E67146-D146-4815-AD92-46922B327547}.Debug|x86.Build.0 = Debug|Win32
+		{78E67146-D146-4815-AD92-46922B327547}.Release|Win32.ActiveCfg = Release|Win32
+		{78E67146-D146-4815-AD92-46922B327547}.Release|Win32.Build.0 = Release|Win32
 		{78E67146-D146-4815-AD92-46922B327547}.Release|x64.ActiveCfg = Release|x64
 		{78E67146-D146-4815-AD92-46922B327547}.Release|x64.Build.0 = Release|x64
+		{78E67146-D146-4815-AD92-46922B327547}.Release|x86.ActiveCfg = Release|Win32
+		{78E67146-D146-4815-AD92-46922B327547}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{31C96422-95B3-4B4D-8517-89C315CB842C} = {A0A3F32A-84BD-4397-B118-0AB7A42F8BE1}
-		{4A6E3D00-FC54-4F10-81CD-58048E7A9DDF} = {A0A3F32A-84BD-4397-B118-0AB7A42F8BE1}
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DAA47766-398E-48AE-869A-D9905DEAE7FF}
 	EndGlobalSection
 EndGlobal
