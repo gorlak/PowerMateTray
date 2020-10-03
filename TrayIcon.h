@@ -11,8 +11,7 @@ namespace PowerMateTray
 		{
 			First = wxID_HIGHEST + 1,
 			Exit = First,
-			Refresh,
-			Last = Refresh,
+			Last = Exit,
 		};
 	}
 
@@ -37,7 +36,6 @@ namespace PowerMateTray
 	protected:
 		void OnTrayIconClick( wxTaskBarIconEvent& evt );
 		void OnMenuExit( wxCommandEvent& evt );
-		void OnMenuRefresh( wxCommandEvent& evt );
 
 	private:
 		Application* m_Application;

@@ -23,13 +23,10 @@ namespace PowerMateTray
 		virtual int OnRun();
 		virtual int OnExit();
 
-		void OnRefreshTimer( wxTimerEvent& evt );
-
 	private:
 		HANDLE m_MutexHandle;
 		tstring m_MutexName;
 		tstring m_Title;
 		TrayIcon* m_TrayIcon;
-		wxTimer m_RefreshTimer;
 	};
 }

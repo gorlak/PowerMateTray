@@ -18,14 +18,11 @@ Application::Application()
 	, m_MutexName (wxT("PowerMateTray"))
 	, m_Title( wxT("PowerMateTray v") VERSION_STRING )
 	, m_TrayIcon( NULL )
-	, m_RefreshTimer( this )
 {
-	Connect( wxEVT_TIMER, wxTimerEventHandler( Application::OnRefreshTimer ), NULL, this );
 }
 
 Application::~Application()
 {
-	Disconnect( wxEVT_TIMER, wxTimerEventHandler( Application::OnRefreshTimer), NULL, this );
 }
 
 void Application::OnInitCmdLine( wxCmdLineParser& parser )
@@ -95,8 +92,6 @@ bool Application::OnInit()
 
 	m_TrayIcon = new TrayIcon( this );
 
-	m_RefreshTimer.Start( g_UpdateIntervalMS, wxTIMER_ONE_SHOT );
-
 	StartupVolume();
 	StartupPowerMate();
 
@@ -126,15 +121,6 @@ int Application::OnExit()
 	ShutdownVolume();
 
 	return __super::OnExit();
-}
-
-void Application::OnRefreshTimer( wxTimerEvent& evt )
-{
-	if( evt.GetId() == m_RefreshTimer.GetId() )
-	{
-		m_TrayIcon->Refresh();
-		m_RefreshTimer.Start( g_UpdateIntervalMS, wxTIMER_ONE_SHOT );
-	}
 }
 
 #ifdef _DEBUG

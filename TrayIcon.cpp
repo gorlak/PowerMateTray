@@ -19,7 +19,6 @@ TrayIcon::TrayIcon( Application* application )
 	Connect( wxID_ANY, wxEVT_TASKBAR_CLICK, wxTaskBarIconEventHandler( TrayIcon::OnTrayIconClick ), NULL, this );
 	Connect( wxID_ANY, wxEVT_TASKBAR_LEFT_UP, wxTaskBarIconEventHandler( TrayIcon::OnTrayIconClick ), NULL, this );
 	Connect( EventIDs::Exit, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( TrayIcon::OnMenuExit ), NULL, this );
-	Connect( EventIDs::Refresh, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( TrayIcon::OnMenuRefresh ), NULL, this );
 }
 
 TrayIcon::~TrayIcon() 
@@ -28,7 +27,6 @@ TrayIcon::~TrayIcon()
 	Disconnect( wxID_ANY, wxEVT_TASKBAR_CLICK, wxTaskBarIconEventHandler( TrayIcon::OnTrayIconClick ), NULL, this );
 	Disconnect( wxID_ANY, wxEVT_TASKBAR_LEFT_UP, wxTaskBarIconEventHandler( TrayIcon::OnTrayIconClick ), NULL, this );
 	Disconnect( EventIDs::Exit, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( TrayIcon::OnMenuExit ), NULL, this );
-	Disconnect( EventIDs::Refresh, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( TrayIcon::OnMenuRefresh ), NULL, this );
 }
 
 void TrayIcon::Initialize()
@@ -97,11 +95,7 @@ void TrayIcon::Refresh()
 		if ( !m_Menu )
 		{
 			m_Menu = new wxMenu();
-			wxMenuItem* refreshMenuItem = new wxMenuItem( m_Menu, EventIDs::Refresh, wxT( "Refresh" ), wxEmptyString, wxITEM_NORMAL );
-			refreshMenuItem->SetBitmap( wxIcon( "REFRESH_ICON", wxBITMAP_TYPE_ICO_RESOURCE, 16, 16 ) );
-			m_Menu->Append( refreshMenuItem );
-
-			m_Menu->Append( new wxMenuItem( m_Menu, EventIDs::Exit, wxString( wxT("Exit v" VERSION_STRING) ) , wxEmptyString, wxITEM_NORMAL ) );
+			m_Menu->Append( new wxMenuItem( m_Menu, EventIDs::Exit, wxString( wxT("Exit PowerMateTray v" VERSION_STRING) ) , wxEmptyString, wxITEM_NORMAL ) );
 		}
 		else
 		{
@@ -117,11 +111,4 @@ void TrayIcon::Refresh()
 		}
 	}
 	EndBusy();
-}
-
-void TrayIcon::OnMenuRefresh(wxCommandEvent& evt)
-{
-	wxBusyCursor wait;
-
-	Refresh();
 }

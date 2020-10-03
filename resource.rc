@@ -52,7 +52,6 @@ END
 0						ICON                    "icons\\logo.ico"
 LOGO_ICON				ICON                    "icons\\logo.ico"
 BUSY_ICON				ICON                    "icons\\busy.ico"
-REFRESH_ICON			ICON                    "icons\\refresh.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
