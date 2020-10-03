@@ -4,6 +4,9 @@
 #include "TrayIcon.h"
 #include "resource.h"
 
+#include "PowerMate.h"
+#include "Volume.h"
+
 #include <regex>
 
 using namespace PowerMateTray;
@@ -94,6 +97,9 @@ bool Application::OnInit()
 
 	m_RefreshTimer.Start( g_UpdateIntervalMS, wxTIMER_ONE_SHOT );
 
+	StartupVolume();
+	StartupPowerMate();
+
 	return true;
 }
 
@@ -115,6 +121,9 @@ int Application::OnExit()
 
 	CloseHandle(m_MutexHandle);
 	m_MutexHandle = NULL;
+
+	ShutdownPowerMate();
+	ShutdownVolume();
 
 	return __super::OnExit();
 }

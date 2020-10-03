@@ -112,6 +112,8 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="PowerMate.cpp" />
+    <ClCompile Include="Volume.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
@@ -122,6 +124,8 @@
     <ClCompile Include="Application.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Volume.h" />
+    <ClInclude Include="PowerMate.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="TrayIcon.h" />
     <ClInclude Include="resource.h" />
