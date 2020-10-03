@@ -6,10 +6,14 @@ If you fork and extend this project, drop me a line on twitter as I'd be happy t
 
 After cloning the repository open an Visual Studio command prompt in your preferred version and target architecture:
 
-`git submodule update --init --recursive`
+```
+git submodule update --init --recursive
+```
    
 will pull down necessary submodules. Then run
 
-`build_wx.bat`
+```
+build_wx.bat
+```
    
 to build wxWidgets. Then you can open the solution and build the matching architecture configuration (x64 or Win32)
