@@ -8,7 +8,7 @@ on:
 
 jobs:
 
-  Windows:
+  Debug:
     name: build-debug
     runs-on: [windows-latest]
 
@@ -28,7 +28,7 @@ jobs:
         cd build
         MSBuild.exe PowerMateTray.sln -p:Configuration=Debug
 
-  Windows:
+  Release:
     name: build-release
     runs-on: [windows-latest]
 
