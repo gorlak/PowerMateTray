@@ -7,8 +7,9 @@ on:
   pull_request: {}
 
 jobs:
+
   Windows:
-    name: build-windows
+    name: build-debug
     runs-on: [windows-latest]
 
     steps:
@@ -17,12 +18,32 @@ jobs:
       with:
           submodules: recursive
 
-    - name: Building wxWidgets
+    - name: Build wxWidgets Debug
       run: |
         cd ${{ github.workspace }}
-        cmd.exe /c call build_wx.bat
+        cmd.exe /c call build_wx.bat debug
 
-    - name: Build Solution (windows)
+    - name: Build PowerMateTray Debug
       run: |
         cd build
-        MSBuild.exe PowerMateTray.sln
+        MSBuild.exe PowerMateTray.sln -p:Configuration=Debug
+
+  Windows:
+    name: build-release
+    runs-on: [windows-latest]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+      with:
+          submodules: recursive
+
+    - name: Build wxWidgets Release
+      run: |
+        cd ${{ github.workspace }}
+        cmd.exe /c call build_wx.bat release
+
+    - name: Build PowerMateTray Release
+      run: |
+        cd build
+        MSBuild.exe PowerMateTray.sln -p:Configuration=Release
