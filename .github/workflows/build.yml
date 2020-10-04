@@ -1,0 +1,28 @@
+name: build
+
+on:
+  push:
+    branches:
+      - master
+  pull_request: {}
+
+jobs:
+  Windows:
+    name: build-windows
+    runs-on: [windows-latest]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+      with:
+          submodules: recursive
+
+    - name: Building wxWidgets
+      run: |
+        cd ${{ github.workspace }}
+        call build_wx.bat
+
+    - name: Build Solution (windows)
+      run: |
+        cd build
+        MSBuild.exe PowerMateTray.sln
