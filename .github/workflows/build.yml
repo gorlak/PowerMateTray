@@ -25,7 +25,6 @@ jobs:
 
     - name: Build PowerMateTray Debug
       run: |
-        cd build
         MSBuild.exe PowerMateTray.sln -p:Configuration=Debug
 
   Release:
@@ -45,5 +44,4 @@ jobs:
 
     - name: Build PowerMateTray Release
       run: |
-        cd build
         MSBuild.exe PowerMateTray.sln -p:Configuration=Release
