@@ -23,6 +23,9 @@ jobs:
         cd ${{ github.workspace }}
         cmd.exe /c call build_wx.bat debug
 
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.0.1
+
     - name: Build PowerMateTray Debug
       run: |
         MSBuild.exe PowerMateTray.sln -p:Configuration=Debug
@@ -41,6 +44,9 @@ jobs:
       run: |
         cd ${{ github.workspace }}
         cmd.exe /c call build_wx.bat release
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.0.1
 
     - name: Build PowerMateTray Release
       run: |
