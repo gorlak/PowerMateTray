@@ -20,7 +20,7 @@ jobs:
     - name: Building wxWidgets
       run: |
         cd ${{ github.workspace }}
-        build_wx.bat
+        cmd.exe /c call build_wx.bat
 
     - name: Build Solution (windows)
       run: |
