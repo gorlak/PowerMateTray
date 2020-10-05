@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Release
+    runs-on: [windows-latest]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+      with:
+          submodules: recursive
+
+    - name: Build wxWidgets Release
+      run: |
+        cd ${{ github.workspace }}
+        cmd.exe /c call build_wx.bat release
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.0.1
+
+    - name: Build PowerMateTray Release
+      run: |
+        MSBuild.exe PowerMateTray.sln -p:Configuration=Release
+
+    - name: Build Installer
+      run: |
+        cmd.exe /c call build_installer.bat
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: ${{ github.ref }}
+
+    - name: Upload Release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: build/x64/Release/PowerMateTraySetup.exe
+        asset_name: PowerMateTraySetup.exe
+        asset_content_type: application/vnd.microsoft.portable-executable
