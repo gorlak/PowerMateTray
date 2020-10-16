@@ -13,6 +13,5 @@
 *.REMOTE.*
 .vs/*
 build/*
-install/*
 ipch/*
-install_dir.txt
+source_index.txt

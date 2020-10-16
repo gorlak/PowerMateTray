@@ -11,6 +11,12 @@
 #define RESOURCE_VERSION_TOSTRING(major, minor, patch) RESOURCE_VERSION_STRINGIFY(major, minor, patch)
 #define RESOURCE_VERSION_STRING RESOURCE_VERSION_TOSTRING( VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH )
 
+#define APP_NAME_STRING "PowerMateTray"
+#define APP_VERSION_STRING RESOURCE_VERSION_STRING
+#define APP_COMPANY_STRING ""
+#define APP_COPYRIGHT_STRING ""
+#define APP_DESCRIPTION_STRING "A simple System Tray app for Griffin PowerMate Bluetooth"
+
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED

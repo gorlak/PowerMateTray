@@ -75,15 +75,13 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "Comments", "A system tray applicaton used to launch shells and tools through EShell."
-            VALUE "CompanyName", "Helium Project"
-            VALUE "FileDescription", "PowerMateTray"
-            VALUE "FileVersion", RESOURCE_VERSION_STRING
-            VALUE "InternalName", "PowerMateTray"
-            VALUE "LegalCopyright", "Copyright (C) Helium Project"
-            VALUE "OriginalFilename", "PowerMateTray.exe"
-            VALUE "ProductName", "PowerMateTray"
-            VALUE "ProductVersion", RESOURCE_VERSION_STRING
+            VALUE "Comments", APP_DESCRIPTION_STRING
+            VALUE "CompanyName", APP_COMPANY_STRING
+            VALUE "FileDescription", APP_NAME_STRING
+            VALUE "FileVersion", APP_VERSION_STRING
+            VALUE "LegalCopyright", APP_COPYRIGHT_STRING
+            VALUE "ProductName", APP_NAME_STRING
+            VALUE "ProductVersion", APP_VERSION_STRING
         END
     END
     BLOCK "VarFileInfo"

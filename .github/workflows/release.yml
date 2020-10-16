@@ -28,6 +28,10 @@ jobs:
       run: |
         MSBuild.exe PowerMateTray.sln -p:Configuration=Release
 
+    - name: Source Index PDB
+      run: |
+        cmd.exe /c call source_index_pdb.bat build\x64\Release\PowerMateTray.pdb
+
     - name: Build Installer
       run: |
         cmd.exe /c call build_installer.bat
