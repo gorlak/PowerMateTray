@@ -15,6 +15,27 @@
 
 #include "Volume.h"
 
+#ifdef PROFILE
+#include "Superluminal/PerformanceAPI.h"
+#define SCOPE_EVENT(STR) PERFORMANCEAPI_INSTRUMENT(STR)
+#else
+#define SCOPE_EVENT(STR)
+#endif // PROFILE
+
+int OutputDebugFormat(const char* format, ...)
+{
+	char str[1024];
+
+	va_list argptr;
+	va_start(argptr, format);
+	int ret = vsnprintf(str, sizeof(str), format, argptr);
+	va_end(argptr);
+
+	OutputDebugStringA(str);
+
+	return ret;
+}
+
 #ifdef _DEBUG
 
 struct DeviceProperty
@@ -100,7 +121,7 @@ static bool ProbeDevicesForFriendlyName(const wchar_t* friendlyName, GUID* class
 				wprintf(L"%s: %s\n", property->property_name, str.c_str());
 			}
 		}
-		printf("\n");
+		OutputDebugFormat("\n");
 #else
 		std::wstring deviceFriendlyName;
 		if (GetDeviceInfoString(hDevInfo, &deviceInfoData, SPDRP_FRIENDLYNAME, deviceFriendlyName) || !wcscmp(friendlyName, deviceFriendlyName.c_str()))
@@ -176,53 +197,59 @@ static HANDLE OpenBluetoothDevice(const GUID* serviceGUID)
 
 static void ValueChangedEventHandler(BTH_LE_GATT_EVENT_TYPE EventType, PVOID EventOutParameter, PVOID Context)
 {
-	printf("Notification obtained ");
+	SCOPE_EVENT("ValueChangedEventHandler");
+
 	PBLUETOOTH_GATT_VALUE_CHANGED_EVENT ValueChangedEventParameters = (PBLUETOOTH_GATT_VALUE_CHANGED_EVENT)EventOutParameter;
 
 	switch (ValueChangedEventParameters->CharacteristicValue->DataSize)
 	{
-	case 0:
-	{
-		printf("ValueChangedEventParameters->CharacteristicValue->DataSize=0\n");
-		break;
-	}
-	case 1:
-	{
-		char data = ValueChangedEventParameters->CharacteristicValue->Data[0];
-		switch (data)
+		case 0:
 		{
-		case 104:
-			printf("Knob Right");
-			IncreaseVolume();
+			OutputDebugFormat("Notification obtained ValueChangedEventParameters->CharacteristicValue->DataSize=0\n");
 			break;
+		}
+		case 1:
+		{
+			char data = ValueChangedEventParameters->CharacteristicValue->Data[0];
+			switch (data)
+			{
+			case 104:
+				OutputDebugFormat("Notification obtained Knob Right\n");
+				IncreaseVolume();
+				break;
 
-		case 103:
-			printf("Knob Left");
-			DecreaseVolume();
+			case 103:
+				OutputDebugFormat("Notification obtained Knob Left\n");
+				DecreaseVolume();
+				break;
+
+			case 101:
+				OutputDebugFormat("Notification obtained Knob Press\n");
+				ToggleMute();
+				break;
+
+			default:
+				OutputDebugFormat("Notification obtained Unknown atom %d\n", data);
+				break;
+			}
 			break;
-
-		case 101:
-			printf("Knob Press");
-			ToggleMute();
-			break;
-
+		}
 		default:
-			printf("Unknown atom %d", data);
-			break;
-		}
-		break;
-	}
-	default:
-	{
-		for (ULONG i = 0; i < ValueChangedEventParameters->CharacteristicValue->DataSize; i++)
 		{
-			printf("%0X", ValueChangedEventParameters->CharacteristicValue->Data[i]);
+#if 0
+			char hex[256];
+			char buf = hex;
+			for (ULONG i = 0; i < ValueChangedEventParameters->CharacteristicValue->DataSize; i++)
+			{
+				size_t count = hex + sizeof(hex) - buf - 1;
+				int result = snprintf(buf, count, "%0X", ValueChangedEventParameters->CharacteristicValue->Data[i]);
+				buf += result;
+			}
+			OutputDebugFormat("Notification obtained %s\n", buf);
+			break;
+#endif
 		}
-		break;
 	}
-	}
-
-	printf("\n");
 }
 
 HANDLE hBluetoothDevice = INVALID_HANDLE_VALUE;
@@ -299,11 +326,11 @@ bool StartupPowerMate()
 	HRESULT hr = BluetoothGATTGetServices(hBluetoothDevice, 0, NULL, &serviceCount, BLUETOOTH_GATT_FLAG_NONE);
 	if (HRESULT_FROM_WIN32(ERROR_MORE_DATA) != hr)
 	{
-		printf("BluetoothGATTGetServices returned unexpected HRESULT: %d\n", hr);
+		OutputDebugFormat("BluetoothGATTGetServices returned unexpected HRESULT: %d\n", hr);
 	}
 	else
 	{
-		printf("Got %d services from the device\n", serviceCount);
+		OutputDebugFormat("Got %d services from the device\n", serviceCount);
 	}
 	if (serviceCount)
 	{
@@ -312,7 +339,7 @@ bool StartupPowerMate()
 		hr = BluetoothGATTGetServices(hBluetoothDevice, serviceCount, pServiceBuffer, &serviceCount, BLUETOOTH_GATT_FLAG_NONE);
 		if (S_OK != hr)
 		{
-			printf("BluetoothGATTGetServices returned unexpected HRESULT: %d\n", hr);
+			OutputDebugFormat("BluetoothGATTGetServices returned unexpected HRESULT: %d\n", hr);
 		}
 	}
 
@@ -324,11 +351,11 @@ bool StartupPowerMate()
 		hr = BluetoothGATTGetCharacteristics(hBluetoothDevice, pServiceBuffer, 0, NULL, &characteristicCount, BLUETOOTH_GATT_FLAG_NONE);
 		if (HRESULT_FROM_WIN32(ERROR_MORE_DATA) != hr)
 		{
-			printf("BluetoothGATTGetCharacteristics returned unexpected HRESULT: %d\n", hr);
+			OutputDebugFormat("BluetoothGATTGetCharacteristics returned unexpected HRESULT: %d\n", hr);
 		}
 		else
 		{
-			printf("Got %d characteristics from the device\n", characteristicCount);
+			OutputDebugFormat("Got %d characteristics from the device\n", characteristicCount);
 		}
 		if (characteristicCount)
 		{
@@ -338,7 +365,7 @@ bool StartupPowerMate()
 			hr = BluetoothGATTGetCharacteristics(hBluetoothDevice, pServiceBuffer, characteristicCount, pCharacteristicBuffer, &characteristicCount, BLUETOOTH_GATT_FLAG_NONE);
 			if (S_OK != hr)
 			{
-				printf("BluetoothGATTGetCharacteristics returned unexpected HRESULT: %d\n", hr);
+				OutputDebugFormat("BluetoothGATTGetCharacteristics returned unexpected HRESULT: %d\n", hr);
 			}
 		}
 	}
@@ -353,11 +380,11 @@ bool StartupPowerMate()
 		hr = BluetoothGATTGetDescriptors(hBluetoothDevice, currentCharacteristic, 0, NULL, &descriptorCount, BLUETOOTH_GATT_FLAG_NONE);
 		if (HRESULT_FROM_WIN32(ERROR_MORE_DATA) != hr)
 		{
-			printf("BluetoothGATTGetDescriptors returned unexpected HRESULT: %d\n", hr);
+			OutputDebugFormat("BluetoothGATTGetDescriptors returned unexpected HRESULT: %d\n", hr);
 		}
 		else
 		{
-			printf("Characteristic %d has %d descriptors\n", characteristicIndex, descriptorCount);
+			OutputDebugFormat("Characteristic %d has %d descriptors\n", characteristicIndex, descriptorCount);
 		}
 
 		AutoFreePointer<BTH_LE_GATT_DESCRIPTOR> pDescriptorBuffer = NULL;
@@ -369,7 +396,7 @@ bool StartupPowerMate()
 			hr = BluetoothGATTGetDescriptors(hBluetoothDevice, currentCharacteristic, descriptorCount, pDescriptorBuffer, &descriptorCount, BLUETOOTH_GATT_FLAG_NONE);
 			if (S_OK != hr)
 			{
-				printf("BluetoothGATTGetDescriptors returned unexpected HRESULT: %d\n", hr);
+				OutputDebugFormat("BluetoothGATTGetDescriptors returned unexpected HRESULT: %d\n", hr);
 			}
 
 			for (int descriptorIndex = 0; descriptorIndex < descriptorCount; descriptorIndex++)
@@ -380,18 +407,18 @@ bool StartupPowerMate()
 				hr = BluetoothGATTGetDescriptorValue(hBluetoothDevice, currentDescriptor, 0, NULL, &descValueDataSize, BLUETOOTH_GATT_FLAG_NONE);
 				if (HRESULT_FROM_WIN32(ERROR_MORE_DATA) != hr)
 				{
-					printf("BluetoothGATTGetDescriptorValue returned unexpected HRESULT: %d\n", hr);
+					OutputDebugFormat("BluetoothGATTGetDescriptorValue returned unexpected HRESULT: %d\n", hr);
 				}
 				else
 				{
-					printf("Characteristic %d, descriptor %d has value data size %d\n", characteristicIndex, descriptorIndex, descValueDataSize);
+					OutputDebugFormat("Characteristic %d, descriptor %d has value data size %d\n", characteristicIndex, descriptorIndex, descValueDataSize);
 				}
 				AutoFreePointer<BTH_LE_GATT_DESCRIPTOR_VALUE> pDescValueBuffer = (PBTH_LE_GATT_DESCRIPTOR_VALUE)malloc(descValueDataSize);
 				ZeroMemory(pDescValueBuffer, descValueDataSize);
 				hr = BluetoothGATTGetDescriptorValue(hBluetoothDevice, currentDescriptor, (ULONG)descValueDataSize, pDescValueBuffer, NULL, BLUETOOTH_GATT_FLAG_NONE);
 				if (S_OK != hr)
 				{
-					printf("BluetoothGATTGetDescriptorValue returned unexpected HRESULT: %d\n", hr);
+					OutputDebugFormat("BluetoothGATTGetDescriptorValue returned unexpected HRESULT: %d\n", hr);
 				}
 
 				//you may also get a descriptor that is read (and not notify) and i am guessing the attribute handle is out of limits
@@ -408,12 +435,12 @@ bool StartupPowerMate()
 					{
 						if (E_ACCESSDENIED != hr)
 						{
-							printf("BluetoothGATTGetDescriptorValue returned unexpected HRESULT: %d\n", hr);
+							OutputDebugFormat("BluetoothGATTGetDescriptorValue returned unexpected HRESULT: %d\n", hr);
 						}
 					}
 					else
 					{
-						printf("Set notification for service handle %d\n", currentDescriptor->ServiceHandle);
+						OutputDebugFormat("Set notification for service handle %d\n", currentDescriptor->ServiceHandle);
 					}
 				}
 			}
@@ -423,7 +450,7 @@ bool StartupPowerMate()
 		BLUETOOTH_GATT_EVENT_HANDLE hValueChangedEvent = INVALID_HANDLE_VALUE;
 		if (currentCharacteristic->IsNotifiable)
 		{
-			printf("Setting Notification for ServiceHandle %d\n", currentCharacteristic->ServiceHandle);
+			OutputDebugFormat("Setting Notification for ServiceHandle %d\n", currentCharacteristic->ServiceHandle);
 
 			BLUETOOTH_GATT_VALUE_CHANGED_EVENT_REGISTRATION eventRegistration;
 			ZeroMemory(&eventRegistration, sizeof(BLUETOOTH_GATT_VALUE_CHANGED_EVENT_REGISTRATION));
@@ -432,7 +459,7 @@ bool StartupPowerMate()
 			hr = BluetoothGATTRegisterEvent(hBluetoothDevice, CharacteristicValueChangedEvent, &eventRegistration, ValueChangedEventHandler, NULL, &hValueChangedEvent, BLUETOOTH_GATT_FLAG_NONE);
 			if (S_OK != hr)
 			{
-				printf("BluetoothGATTRegisterEvent returned unexpected HRESULT: %d\n", hr);
+				OutputDebugFormat("BluetoothGATTRegisterEvent returned unexpected HRESULT: %d\n", hr);
 			}
 		}
 
@@ -442,22 +469,22 @@ bool StartupPowerMate()
 			hr = BluetoothGATTGetCharacteristicValue(hBluetoothDevice, currentCharacteristic, 0, NULL, &valueDataSize, BLUETOOTH_GATT_FLAG_NONE);
 			if (HRESULT_FROM_WIN32(ERROR_MORE_DATA) != hr)
 			{
-				printf("BluetoothGATTGetCharacteristicValue returned unexpected HRESULT: %d\n", hr);
+				OutputDebugFormat("BluetoothGATTGetCharacteristicValue returned unexpected HRESULT: %d\n", hr);
 			}
 			AutoFreePointer<BTH_LE_GATT_CHARACTERISTIC_VALUE> pValueBuffer = (PBTH_LE_GATT_CHARACTERISTIC_VALUE)malloc(valueDataSize);
 			ZeroMemory(pValueBuffer, valueDataSize);
 			hr = BluetoothGATTGetCharacteristicValue(hBluetoothDevice, currentCharacteristic, (ULONG)valueDataSize, pValueBuffer, NULL, BLUETOOTH_GATT_FLAG_NONE);
 			if (S_OK != hr)
 			{
-				printf("BluetoothGATTGetCharacteristicValue returned unexpected HRESULT: %d\n", hr);
+				OutputDebugFormat("BluetoothGATTGetCharacteristicValue returned unexpected HRESULT: %d\n", hr);
 			}
 
-			printf("Read characterstic value: ");
+			OutputDebugFormat("Read characterstic value: ");
 			for (ULONG dataIndex = 0; dataIndex < pValueBuffer->DataSize; dataIndex++)
 			{
-				printf("%0X", pValueBuffer->Data[dataIndex]);
+				OutputDebugFormat("%0X", pValueBuffer->Data[dataIndex]);
 			}
-			printf("\n");
+			OutputDebugFormat("\n");
 		}
 	}
 
