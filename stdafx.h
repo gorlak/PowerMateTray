@@ -46,9 +46,12 @@
 #include <wx/filename.h>
 #include <wx/xml/xml.h>
 
-#define TO_STRING(x) #x
-#define TODO_STRING(x) TO_STRING(x)
-#define TODO(msg) message (__FILE__ "(" TODO_STRING(__LINE__) ") : TODO: " msg)
+#ifdef PROFILE
+#include "Superluminal/PerformanceAPI.h"
+#define SCOPE_EVENT(STR) PERFORMANCEAPI_INSTRUMENT(STR)
+#else
+#define SCOPE_EVENT(STR)
+#endif // PROFILE
 
 #ifdef _UNICODE
 typedef wchar_t tchar_t;
@@ -70,10 +73,62 @@ typedef std::basic_istringstream< tchar_t, std::char_traits< tchar_t >, std::all
 typedef std::basic_ostringstream< tchar_t, std::char_traits< tchar_t >, std::allocator< tchar_t > > tostringstream;
 typedef std::basic_stringstream< tchar_t, std::char_traits< tchar_t >, std::allocator< tchar_t > > tstringstream;
 
-typedef std::tr1::basic_regex<tchar_t, std::tr1::regex_traits<tchar_t> > tregex;
-typedef std::tr1::match_results<const tchar_t*> tcmatch;
-typedef std::tr1::match_results<tstring::const_iterator> tsmatch;
-typedef std::tr1::regex_token_iterator< const tchar_t*> tcregex_token_iterator;
-typedef std::tr1::regex_token_iterator< tstring::const_iterator> tsregex_token_iterator;
-typedef std::tr1::regex_iterator< const tchar_t* > tcregex_iterator;
-typedef std::tr1::regex_iterator< tstring::const_iterator > tsregex_iterator;
+typedef std::basic_regex<tchar_t, std::regex_traits<tchar_t> > tregex;
+typedef std::match_results<const tchar_t*> tcmatch;
+typedef std::match_results<tstring::const_iterator> tsmatch;
+typedef std::regex_token_iterator< const tchar_t*> tcregex_token_iterator;
+typedef std::regex_token_iterator< tstring::const_iterator> tsregex_token_iterator;
+typedef std::regex_iterator< const tchar_t* > tcregex_iterator;
+typedef std::regex_iterator< tstring::const_iterator > tsregex_iterator;
+
+int OutputDebugFormat(const char* format, ...);
+int OutputDebugFormat(const wchar_t* format, ...);
+
+template< class T >
+class AutoFreePointer
+{
+public:
+	AutoFreePointer()
+		: m_Pointer(nullptr)
+	{
+
+	}
+
+	AutoFreePointer(T* pointer)
+		: m_Pointer(pointer)
+	{
+
+	}
+
+	~AutoFreePointer()
+	{
+		if (m_Pointer)
+		{
+			free(m_Pointer);
+		}
+	}
+
+	T* operator=(T* pointer)
+	{
+		if (m_Pointer)
+		{
+			free(m_Pointer);
+		}
+		m_Pointer = pointer;
+		return m_Pointer;
+	}
+
+	T* operator->()
+	{
+		return m_Pointer;
+	}
+
+	operator T* ()
+	{
+		return m_Pointer;
+	}
+
+private:
+	T* m_Pointer;
+};
+

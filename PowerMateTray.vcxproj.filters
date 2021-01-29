@@ -4,16 +4,18 @@
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="TrayIcon.cpp" />
-    <ClCompile Include="PowerMate.cpp" />
     <ClCompile Include="Volume.cpp" />
+    <ClCompile Include="PowerMateBluetooth.cpp" />
+    <ClCompile Include="PowerMateUSB.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="TrayIcon.h" />
-    <ClInclude Include="PowerMate.h" />
     <ClInclude Include="Volume.h" />
+    <ClInclude Include="PowerMateBluetooth.h" />
+    <ClInclude Include="PowerMateUSB.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />

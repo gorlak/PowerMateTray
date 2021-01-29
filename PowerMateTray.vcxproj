@@ -154,7 +154,8 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="PowerMate.cpp" />
+    <ClCompile Include="PowerMateBluetooth.cpp" />
+    <ClCompile Include="PowerMateUSB.cpp" />
     <ClCompile Include="Volume.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -168,8 +169,9 @@
     <ClCompile Include="Application.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="PowerMateBluetooth.h" />
+    <ClInclude Include="PowerMateUSB.h" />
     <ClInclude Include="Volume.h" />
-    <ClInclude Include="PowerMate.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="TrayIcon.h" />
     <ClInclude Include="resource.h" />

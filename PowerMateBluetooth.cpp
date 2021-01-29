@@ -15,135 +15,11 @@
 
 #include "Volume.h"
 
-#ifdef PROFILE
-#include "Superluminal/PerformanceAPI.h"
-#define SCOPE_EVENT(STR) PERFORMANCEAPI_INSTRUMENT(STR)
-#else
-#define SCOPE_EVENT(STR)
-#endif // PROFILE
-
-int OutputDebugFormat(const char* format, ...)
-{
-	char str[1024];
-
-	va_list argptr;
-	va_start(argptr, format);
-	int ret = vsnprintf(str, sizeof(str), format, argptr);
-	va_end(argptr);
-
-	OutputDebugStringA(str);
-
-	return ret;
-}
-
-#ifdef _DEBUG
-
-struct DeviceProperty
-{
-	DWORD property;
-	const wchar_t* property_name;
-} g_DeviceProperties[] = {
-	{ SPDRP_DEVICEDESC, L"SPDRP_DEVICEDESC" },
-	{ SPDRP_CLASS, L"SPDRP_CLASS" },
-	{ SPDRP_CLASSGUID, L"SPDRP_CLASSGUID" },
-	{ SPDRP_FRIENDLYNAME, L"SPDRP_FRIENDLYNAME" },
-	{ SPDRP_ENUMERATOR_NAME, L"SPDRP_ENUMERATOR_NAME" },
-	{ SPDRP_DRIVER, L"SPDRP_DRIVER" },
-	{ SPDRP_HARDWAREID, L"SPDRP_HARDWAREID" },
-	{ SPDRP_MFG, L"SPDRP_MFG" },
-	{ SPDRP_LOCATION_INFORMATION, L"SPDRP_LOCATION_INFORMATION" },
-	{ SPDRP_SERVICE, L"SPDRP_SERVICE" },
-	{ 0, 0 }
-};
-
-static bool GetDeviceInfoString(HDEVINFO hDevInfo, PSP_DEVINFO_DATA pDevInfoData, DWORD devProperty, std::wstring& value)
-{
-	value.clear();
-
-	DWORD dwBytesNeeded = 0;
-	if (!SetupDiGetDeviceRegistryProperty(hDevInfo, pDevInfoData, devProperty, NULL, NULL, 0, &dwBytesNeeded))
-	{
-		if (ERROR_INSUFFICIENT_BUFFER != GetLastError() || dwBytesNeeded < 1)
-		{
-			return false;
-		}
-	}
-
-	bool result = true;
-	DWORD dwBufSize = dwBytesNeeded + 0x10;;
-	PUCHAR pBuf = NULL;
-
-	if (NULL == (pBuf = (PUCHAR)_malloca(dwBufSize)))
-	{
-		result = false;
-	}
-	else
-	{
-		if (SetupDiGetDeviceRegistryProperty(hDevInfo, pDevInfoData, devProperty, NULL, pBuf, dwBufSize, &dwBufSize))
-		{
-			value = (wchar_t*)pBuf;
-		}
-		else
-		{
-			result = false;
-		}
-	}
-
-	if (pBuf)
-	{
-		_freea(pBuf);
-	}
-
-	return result;
-}
-
-static bool ProbeDevicesForFriendlyName(const wchar_t* friendlyName, GUID* classGUID)
-{
-	bool result = false;
-
-	HDEVINFO hDevInfo = SetupDiGetClassDevs(NULL, NULL, NULL, DIGCF_ALLCLASSES | DIGCF_PRESENT);
-	if (hDevInfo == INVALID_HANDLE_VALUE)
-	{
-		return false;
-	}
-
-	SP_DEVINFO_DATA deviceInfoData;
-	ZeroMemory(&deviceInfoData, sizeof(SP_DEVINFO_DATA));
-	deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
-	for (DWORD devInfoIndex = 0; SetupDiEnumDeviceInfo(hDevInfo, devInfoIndex, &deviceInfoData); devInfoIndex++)
-	{
-#ifdef DUMP_DEVICES
-		for (DeviceProperty* property = g_DeviceProperties; property->property_name; property++)
-		{
-			std::wstring str;
-			if (GetDeviceInfoString(hDevInfo, &deviceInfoData, property->property, str))
-			{
-				wprintf(L"%s: %s\n", property->property_name, str.c_str());
-			}
-		}
-		OutputDebugFormat("\n");
-#else
-		std::wstring deviceFriendlyName;
-		if (GetDeviceInfoString(hDevInfo, &deviceInfoData, SPDRP_FRIENDLYNAME, deviceFriendlyName) || !wcscmp(friendlyName, deviceFriendlyName.c_str()))
-		{
-			memcpy(classGUID, &deviceInfoData.ClassGuid, sizeof(GUID));
-			result = true;
-			break;
-		}
-#endif
-	}
-
-	SetupDiDestroyDeviceInfoList(hDevInfo);
-	return result;
-}
-
-#endif // _DEBUG
-
-static HANDLE OpenBluetoothDevice(const GUID* serviceGUID)
+static HANDLE OpenBluetoothDevice(const GUID* interfaceGUID)
 {
 	HANDLE hResult = INVALID_HANDLE_VALUE;
 
-	HDEVINFO hDevInfo = SetupDiGetClassDevs(serviceGUID, NULL, NULL, DIGCF_DEVICEINTERFACE | DIGCF_PRESENT);
+	HDEVINFO hDevInfo = SetupDiGetClassDevs(interfaceGUID, NULL, NULL, DIGCF_DEVICEINTERFACE | DIGCF_PRESENT);
 	if (hDevInfo == INVALID_HANDLE_VALUE)
 	{
 		return hResult;
@@ -153,7 +29,7 @@ static HANDLE OpenBluetoothDevice(const GUID* serviceGUID)
 	ZeroMemory(&deviceInterfaceData, sizeof(SP_DEVICE_INTERFACE_DATA));
 	deviceInterfaceData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
 
-	for (DWORD devInterfaceIndex = 0; SetupDiEnumDeviceInterfaces(hDevInfo, NULL, serviceGUID, devInterfaceIndex, &deviceInterfaceData); devInterfaceIndex++)
+	for (DWORD devInterfaceIndex = 0; SetupDiEnumDeviceInterfaces(hDevInfo, NULL, interfaceGUID, devInterfaceIndex, &deviceInterfaceData); devInterfaceIndex++)
 	{
 		DWORD size = 0;
 		if (!SetupDiGetDeviceInterfaceDetail(hDevInfo, &deviceInterfaceData, NULL, 0, &size, 0))
@@ -176,6 +52,7 @@ static HANDLE OpenBluetoothDevice(const GUID* serviceGUID)
 
 				if (SetupDiGetDeviceInterfaceDetail(hDevInfo, &deviceInterfaceData, pInterfaceDetailData, size, &size, &devInfoData))
 				{
+					OutputDebugFormat(_T("Found PowerMate Bluetooth: %s"), pInterfaceDetailData->DevicePath);
 					hResult = CreateFile(
 						pInterfaceDetailData->DevicePath,
 						GENERIC_READ,
@@ -187,6 +64,11 @@ static HANDLE OpenBluetoothDevice(const GUID* serviceGUID)
 				}
 
 				free(pInterfaceDetailData);
+
+				if (hResult != INVALID_HANDLE_VALUE)
+				{
+					break;
+				}
 			}
 		}
 	}
@@ -254,67 +136,19 @@ static void ValueChangedEventHandler(BTH_LE_GATT_EVENT_TYPE EventType, PVOID Eve
 
 HANDLE hBluetoothDevice = INVALID_HANDLE_VALUE;
 
-template< class T >
-class AutoFreePointer
-{
-public:
-	AutoFreePointer()
-		: m_Pointer(nullptr)
-	{
-
-	}
-
-	AutoFreePointer(T* pointer)
-		: m_Pointer(pointer)
-	{
-
-	}
-
-	~AutoFreePointer()
-	{
-		if (m_Pointer)
-		{
-			free(m_Pointer);
-		}
-	}
-
-	T* operator=(T* pointer)
-	{
-		if (m_Pointer)
-		{
-			free(m_Pointer);
-		}
-		m_Pointer = pointer;
-		return m_Pointer;
-	}
-
-	T* operator->()
-	{
-		return m_Pointer;
-	}
-
-	operator T* ()
-	{
-		return m_Pointer;
-	}
-
-private:
-	T* m_Pointer;
-};
-
-bool StartupPowerMate()
+bool StartupPowerMateBluetooth()
 {
 	// this guid is from Bluetooth LE Explorer, in the windows store
 	//  the service GUID is the custom service for the custom characteristics on the device
 	//  if this were a heart tracker or something standard it would use a uuid from bluetooth's website
-	GUID serviceGUID;
-	if (ERROR_SUCCESS != CLSIDFromString(TEXT("{25598CF7-4240-40A6-9910-080F19F91EBC}"), &serviceGUID))
+	GUID interfaceGUID;
+	if (ERROR_SUCCESS != CLSIDFromString(TEXT("{25598CF7-4240-40A6-9910-080F19F91EBC}"), &interfaceGUID))
 	{
 		return false;
 	}
 
 	// this searches for a device in the windows device registry that implements the service guid above, and opens a HANDLE
-	hBluetoothDevice = OpenBluetoothDevice(&serviceGUID);
+	hBluetoothDevice = OpenBluetoothDevice(&interfaceGUID);
 	if (hBluetoothDevice == INVALID_HANDLE_VALUE)
 	{
 		return false;
@@ -491,7 +325,7 @@ bool StartupPowerMate()
 	return true;
 }
 
-void ShutdownPowerMate()
+void ShutdownPowerMateBluetooth()
 {
 	CloseHandle(hBluetoothDevice);
 }

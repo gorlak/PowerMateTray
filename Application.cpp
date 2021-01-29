@@ -4,7 +4,8 @@
 #include "TrayIcon.h"
 #include "resource.h"
 
-#include "PowerMate.h"
+#include "PowerMateBluetooth.h"
+#include "PowerMateUSB.h"
 #include "Volume.h"
 
 #include <regex>
@@ -93,7 +94,8 @@ bool Application::OnInit()
 	m_TrayIcon = new TrayIcon( this );
 
 	StartupVolume();
-	StartupPowerMate();
+	StartupPowerMateBluetooth();
+	StartupPowerMateUSB();
 
 	return true;
 }
@@ -117,7 +119,8 @@ int Application::OnExit()
 	CloseHandle(m_MutexHandle);
 	m_MutexHandle = NULL;
 
-	ShutdownPowerMate();
+	ShutdownPowerMateUSB();
+	ShutdownPowerMateBluetooth();
 	ShutdownVolume();
 
 	return __super::OnExit();
