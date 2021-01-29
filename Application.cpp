@@ -127,8 +127,4 @@ int Application::OnExit()
 long& g_BreakOnAlloc (_crtBreakAlloc);
 #endif
 
-#ifdef _DEBUG
-IMPLEMENT_APP_CONSOLE( Application );
-#else
 IMPLEMENT_APP( Application );
-#endif
