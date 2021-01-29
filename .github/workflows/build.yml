@@ -24,7 +24,7 @@ jobs:
         cmd.exe /c call build_wx.bat debug
 
     - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v1.0.1
+      uses: microsoft/setup-msbuild@v1.0.2
 
     - name: Build PowerMateTray Debug
       run: |
@@ -46,7 +46,7 @@ jobs:
         cmd.exe /c call build_wx.bat release
 
     - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v1.0.1
+      uses: microsoft/setup-msbuild@v1.0.2
 
     - name: Build PowerMateTray Release
       run: |
