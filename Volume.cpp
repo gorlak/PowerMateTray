@@ -37,16 +37,12 @@ void ShutdownVolume()
 
 void IncreaseVolume()
 {
-	float level;
-	pAudioEndpointVolume->GetMasterVolumeLevel(&level);
-	pAudioEndpointVolume->SetMasterVolumeLevel(level + 1.f, NULL);
+	pAudioEndpointVolume->VolumeStepUp(nullptr);
 }
 
 void DecreaseVolume()
 {
-	float level;
-	pAudioEndpointVolume->GetMasterVolumeLevel(&level);
-	pAudioEndpointVolume->SetMasterVolumeLevel(level - 1.f, NULL);
+	pAudioEndpointVolume->VolumeStepDown(nullptr);
 }
 
 void ToggleMute()

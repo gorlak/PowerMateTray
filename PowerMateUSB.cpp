@@ -55,7 +55,7 @@ static HANDLE OpenUSBDevice(const GUID* interfaceGUID)
 				{
 					if (NULL != _tcsstr((TCHAR*)pInterfaceDetailData->DevicePath, _T("vid_077d&pid_0410")))
 					{
-						OutputDebugFormat(_T("Found PowerMate USB: %s"), pInterfaceDetailData->DevicePath);
+						OutputDebugFormat(_T("Found PowerMate USB: %s\n"), pInterfaceDetailData->DevicePath);
 						hResult = CreateFile(
 							pInterfaceDetailData->DevicePath,
 							GENERIC_READ|GENERIC_WRITE,

@@ -52,7 +52,7 @@ static HANDLE OpenBluetoothDevice(const GUID* interfaceGUID)
 
 				if (SetupDiGetDeviceInterfaceDetail(hDevInfo, &deviceInterfaceData, pInterfaceDetailData, size, &size, &devInfoData))
 				{
-					OutputDebugFormat(_T("Found PowerMate Bluetooth: %s"), pInterfaceDetailData->DevicePath);
+					OutputDebugFormat(_T("Found PowerMate Bluetooth: %s\n"), pInterfaceDetailData->DevicePath);
 					hResult = CreateFile(
 						pInterfaceDetailData->DevicePath,
 						GENERIC_READ,
@@ -83,54 +83,34 @@ static void ValueChangedEventHandler(BTH_LE_GATT_EVENT_TYPE EventType, PVOID Eve
 
 	PBLUETOOTH_GATT_VALUE_CHANGED_EVENT ValueChangedEventParameters = (PBLUETOOTH_GATT_VALUE_CHANGED_EVENT)EventOutParameter;
 
-	switch (ValueChangedEventParameters->CharacteristicValue->DataSize)
+	if (ValueChangedEventParameters->CharacteristicValue->DataSize == 1)
 	{
-		case 0:
+		char data = ValueChangedEventParameters->CharacteristicValue->Data[0];
+		switch (data)
 		{
-			OutputDebugFormat("Notification obtained ValueChangedEventParameters->CharacteristicValue->DataSize=0\n");
+		case 101:
+			OutputDebugFormat("Notification obtained Knob Press\n");
+			ToggleMute();
 			break;
-		}
-		case 1:
-		{
-			char data = ValueChangedEventParameters->CharacteristicValue->Data[0];
-			switch (data)
-			{
-			case 104:
-				OutputDebugFormat("Notification obtained Knob Right\n");
-				IncreaseVolume();
-				break;
 
-			case 103:
-				OutputDebugFormat("Notification obtained Knob Left\n");
-				DecreaseVolume();
-				break;
-
-			case 101:
-				OutputDebugFormat("Notification obtained Knob Press\n");
-				ToggleMute();
-				break;
-
-			default:
-				OutputDebugFormat("Notification obtained Unknown atom %d\n", data);
-				break;
-			}
+		case 103:
+			OutputDebugFormat("Notification obtained Knob Left\n");
+			DecreaseVolume();
 			break;
-		}
+
+		case 104:
+			OutputDebugFormat("Notification obtained Knob Right\n");
+			IncreaseVolume();
+			break;
+
 		default:
-		{
-#if 0
-			char hex[256];
-			char buf = hex;
-			for (ULONG i = 0; i < ValueChangedEventParameters->CharacteristicValue->DataSize; i++)
-			{
-				size_t count = hex + sizeof(hex) - buf - 1;
-				int result = snprintf(buf, count, "%0X", ValueChangedEventParameters->CharacteristicValue->Data[i]);
-				buf += result;
-			}
-			OutputDebugFormat("Notification obtained %s\n", buf);
+			OutputDebugFormat("Notification obtained unknown event\n");
 			break;
-#endif
 		}
+	}
+	else
+	{
+		OutputDebugFormat("Notification obtained unknown data size %d\n", ValueChangedEventParameters->CharacteristicValue->DataSize);
 	}
 }
 
@@ -162,10 +142,6 @@ bool StartupPowerMateBluetooth()
 	{
 		OutputDebugFormat("BluetoothGATTGetServices returned unexpected HRESULT: %d\n", hr);
 	}
-	else
-	{
-		OutputDebugFormat("Got %d services from the device\n", serviceCount);
-	}
 	if (serviceCount)
 	{
 		pServiceBuffer = (PBTH_LE_GATT_SERVICE)malloc(sizeof(BTH_LE_GATT_SERVICE) * serviceCount);
@@ -187,10 +163,6 @@ bool StartupPowerMateBluetooth()
 		{
 			OutputDebugFormat("BluetoothGATTGetCharacteristics returned unexpected HRESULT: %d\n", hr);
 		}
-		else
-		{
-			OutputDebugFormat("Got %d characteristics from the device\n", characteristicCount);
-		}
 		if (characteristicCount)
 		{
 			pCharacteristicBuffer = (PBTH_LE_GATT_CHARACTERISTIC)malloc(sizeof(BTH_LE_GATT_CHARACTERISTIC) * characteristicCount);
@@ -205,120 +177,31 @@ bool StartupPowerMateBluetooth()
 	}
 
 	// iterate the characteristics and attach event handler
-	PBTH_LE_GATT_CHARACTERISTIC currentCharacteristic = NULL;
-	for (int characteristicIndex = 0; characteristicIndex < characteristicCount; characteristicIndex++)
+	if (characteristicCount >= 2)
 	{
-		currentCharacteristic = &pCharacteristicBuffer[characteristicIndex];
-
-		USHORT descriptorCount;
-		hr = BluetoothGATTGetDescriptors(hBluetoothDevice, currentCharacteristic, 0, NULL, &descriptorCount, BLUETOOTH_GATT_FLAG_NONE);
-		if (HRESULT_FROM_WIN32(ERROR_MORE_DATA) != hr)
-		{
-			OutputDebugFormat("BluetoothGATTGetDescriptors returned unexpected HRESULT: %d\n", hr);
-		}
-		else
-		{
-			OutputDebugFormat("Characteristic %d has %d descriptors\n", characteristicIndex, descriptorCount);
-		}
-
-		AutoFreePointer<BTH_LE_GATT_DESCRIPTOR> pDescriptorBuffer = NULL;
-		if (descriptorCount)
-		{
-			pDescriptorBuffer = (PBTH_LE_GATT_DESCRIPTOR)malloc(sizeof(BTH_LE_GATT_DESCRIPTOR) * descriptorCount);
-			ZeroMemory(pDescriptorBuffer, sizeof(BTH_LE_GATT_DESCRIPTOR) * descriptorCount);
-
-			hr = BluetoothGATTGetDescriptors(hBluetoothDevice, currentCharacteristic, descriptorCount, pDescriptorBuffer, &descriptorCount, BLUETOOTH_GATT_FLAG_NONE);
-			if (S_OK != hr)
-			{
-				OutputDebugFormat("BluetoothGATTGetDescriptors returned unexpected HRESULT: %d\n", hr);
-			}
-
-			for (int descriptorIndex = 0; descriptorIndex < descriptorCount; descriptorIndex++)
-			{
-				PBTH_LE_GATT_DESCRIPTOR  currentDescriptor = &pDescriptorBuffer[descriptorIndex];
-
-				USHORT descValueDataSize;
-				hr = BluetoothGATTGetDescriptorValue(hBluetoothDevice, currentDescriptor, 0, NULL, &descValueDataSize, BLUETOOTH_GATT_FLAG_NONE);
-				if (HRESULT_FROM_WIN32(ERROR_MORE_DATA) != hr)
-				{
-					OutputDebugFormat("BluetoothGATTGetDescriptorValue returned unexpected HRESULT: %d\n", hr);
-				}
-				else
-				{
-					OutputDebugFormat("Characteristic %d, descriptor %d has value data size %d\n", characteristicIndex, descriptorIndex, descValueDataSize);
-				}
-				AutoFreePointer<BTH_LE_GATT_DESCRIPTOR_VALUE> pDescValueBuffer = (PBTH_LE_GATT_DESCRIPTOR_VALUE)malloc(descValueDataSize);
-				ZeroMemory(pDescValueBuffer, descValueDataSize);
-				hr = BluetoothGATTGetDescriptorValue(hBluetoothDevice, currentDescriptor, (ULONG)descValueDataSize, pDescValueBuffer, NULL, BLUETOOTH_GATT_FLAG_NONE);
-				if (S_OK != hr)
-				{
-					OutputDebugFormat("BluetoothGATTGetDescriptorValue returned unexpected HRESULT: %d\n", hr);
-				}
-
-				//you may also get a descriptor that is read (and not notify) and i am guessing the attribute handle is out of limits
-				// we set all descriptors that are notifiable to notify us via IsSubstcibeToNotification
-				if (currentDescriptor->DescriptorType != CharacteristicUserDescription)
-				{
-					BTH_LE_GATT_DESCRIPTOR_VALUE newValue;
-					ZeroMemory(&newValue, sizeof(BTH_LE_GATT_DESCRIPTOR_VALUE));
-					newValue.DescriptorType = ClientCharacteristicConfiguration;
-					newValue.ClientCharacteristicConfiguration.IsSubscribeToNotification = TRUE;
-
-					hr = BluetoothGATTSetDescriptorValue(hBluetoothDevice, currentDescriptor, &newValue, BLUETOOTH_GATT_FLAG_NONE);
-					if (S_OK != hr)
-					{
-						if (E_ACCESSDENIED != hr)
-						{
-							OutputDebugFormat("BluetoothGATTGetDescriptorValue returned unexpected HRESULT: %d\n", hr);
-						}
-					}
-					else
-					{
-						OutputDebugFormat("Set notification for service handle %d\n", currentDescriptor->ServiceHandle);
-					}
-				}
-			}
-		}
-
-		// set the appropriate callback function when the descriptor change value
-		BLUETOOTH_GATT_EVENT_HANDLE hValueChangedEvent = INVALID_HANDLE_VALUE;
+		// 2 is the magic characteristic, BTLE is obnoxious about characteristic identity
+		PBTH_LE_GATT_CHARACTERISTIC currentCharacteristic = &pCharacteristicBuffer[2];
 		if (currentCharacteristic->IsNotifiable)
 		{
-			OutputDebugFormat("Setting Notification for ServiceHandle %d\n", currentCharacteristic->ServiceHandle);
-
 			BLUETOOTH_GATT_VALUE_CHANGED_EVENT_REGISTRATION eventRegistration;
 			ZeroMemory(&eventRegistration, sizeof(BLUETOOTH_GATT_VALUE_CHANGED_EVENT_REGISTRATION));
 			eventRegistration.Characteristics[0] = *currentCharacteristic;
 			eventRegistration.NumCharacteristics = 1;
+			BLUETOOTH_GATT_EVENT_HANDLE hValueChangedEvent = INVALID_HANDLE_VALUE;
 			hr = BluetoothGATTRegisterEvent(hBluetoothDevice, CharacteristicValueChangedEvent, &eventRegistration, ValueChangedEventHandler, NULL, &hValueChangedEvent, BLUETOOTH_GATT_FLAG_NONE);
 			if (S_OK != hr)
 			{
 				OutputDebugFormat("BluetoothGATTRegisterEvent returned unexpected HRESULT: %d\n", hr);
 			}
+			else
+			{
+				OutputDebugFormat("Registered for Event Notification\n");
+			}
 		}
-
-		if (currentCharacteristic->IsReadable)
+		else
 		{
-			USHORT valueDataSize;
-			hr = BluetoothGATTGetCharacteristicValue(hBluetoothDevice, currentCharacteristic, 0, NULL, &valueDataSize, BLUETOOTH_GATT_FLAG_NONE);
-			if (HRESULT_FROM_WIN32(ERROR_MORE_DATA) != hr)
-			{
-				OutputDebugFormat("BluetoothGATTGetCharacteristicValue returned unexpected HRESULT: %d\n", hr);
-			}
-			AutoFreePointer<BTH_LE_GATT_CHARACTERISTIC_VALUE> pValueBuffer = (PBTH_LE_GATT_CHARACTERISTIC_VALUE)malloc(valueDataSize);
-			ZeroMemory(pValueBuffer, valueDataSize);
-			hr = BluetoothGATTGetCharacteristicValue(hBluetoothDevice, currentCharacteristic, (ULONG)valueDataSize, pValueBuffer, NULL, BLUETOOTH_GATT_FLAG_NONE);
-			if (S_OK != hr)
-			{
-				OutputDebugFormat("BluetoothGATTGetCharacteristicValue returned unexpected HRESULT: %d\n", hr);
-			}
-
-			OutputDebugFormat("Read characterstic value: ");
-			for (ULONG dataIndex = 0; dataIndex < pValueBuffer->DataSize; dataIndex++)
-			{
-				OutputDebugFormat("%0X", pValueBuffer->Data[dataIndex]);
-			}
-			OutputDebugFormat("\n");
+			OutputDebugFormat("Expected characteristic isn't notifiable!\n");
+			return false;
 		}
 	}
 
