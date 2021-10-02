@@ -94,13 +94,8 @@ bool Application::OnInit()
 	m_TrayIcon = new TrayIcon( this );
 
 	StartupVolume();
-
-	bool bFoundBluetooth = StartupPowerMateBluetooth();
-	bool bFoundUSB = StartupPowerMateUSB();
-	if (!bFoundBluetooth && !bFoundUSB)
-	{
-		wxMessageBox("Could not locate a Bluetooth LE or USB PowerMate!", "Connection Error", wxICON_ERROR);
-	}
+	StartupPowerMateBluetooth();
+	StartupPowerMateUSB();
 
 	return true;
 }

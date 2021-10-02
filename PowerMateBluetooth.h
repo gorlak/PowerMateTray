@@ -1,4 +1,4 @@
 #pragma once
 
-bool StartupPowerMateBluetooth();
+void StartupPowerMateBluetooth();
 void ShutdownPowerMateBluetooth();

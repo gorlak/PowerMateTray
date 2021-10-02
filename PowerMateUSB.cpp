@@ -16,21 +16,24 @@
 
 #include "Volume.h"
 
-static HANDLE OpenUSBDevice(const GUID* interfaceGUID)
+static bool FindUSBDevice(WCHAR* devicePath = nullptr, uint32_t devicePathCount = 0)
 {
-	HANDLE hResult = INVALID_HANDLE_VALUE;
+	bool bResult = false;
 
-	HDEVINFO hDevInfo = SetupDiGetClassDevs(interfaceGUID, NULL, NULL, DIGCF_DEVICEINTERFACE | DIGCF_PRESENT);
+	GUID interfaceGUID;
+	HidD_GetHidGuid(&interfaceGUID);
+
+	HDEVINFO hDevInfo = SetupDiGetClassDevs(&interfaceGUID, NULL, NULL, DIGCF_DEVICEINTERFACE | DIGCF_PRESENT);
 	if (hDevInfo == INVALID_HANDLE_VALUE)
 	{
-		return hResult;
+		return bResult;
 	}
 
 	SP_DEVICE_INTERFACE_DATA deviceInterfaceData;
 	ZeroMemory(&deviceInterfaceData, sizeof(SP_DEVICE_INTERFACE_DATA));
 	deviceInterfaceData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
 
-	for (DWORD devInterfaceIndex = 0; SetupDiEnumDeviceInterfaces(hDevInfo, NULL, interfaceGUID, devInterfaceIndex, &deviceInterfaceData); devInterfaceIndex++)
+	for (DWORD devInterfaceIndex = 0; SetupDiEnumDeviceInterfaces(hDevInfo, NULL, &interfaceGUID, devInterfaceIndex, &deviceInterfaceData); devInterfaceIndex++)
 	{
 		DWORD size = 0;
 		if (!SetupDiGetDeviceInterfaceDetail(hDevInfo, &deviceInterfaceData, NULL, 0, &size, 0))
@@ -55,21 +58,18 @@ static HANDLE OpenUSBDevice(const GUID* interfaceGUID)
 				{
 					if (NULL != _tcsstr((TCHAR*)pInterfaceDetailData->DevicePath, _T("vid_077d&pid_0410")))
 					{
-						OutputDebugFormat(_T("Found PowerMate USB: %s\n"), pInterfaceDetailData->DevicePath);
-						hResult = CreateFile(
-							pInterfaceDetailData->DevicePath,
-							GENERIC_READ|GENERIC_WRITE,
-							FILE_SHARE_READ|FILE_SHARE_WRITE,
-							NULL,
-							OPEN_EXISTING,
-							0,
-							NULL);
+						if (devicePath && devicePathCount)
+						{
+							OutputDebugFormat(_T("Found PowerMate USB: %s\n"), pInterfaceDetailData->DevicePath);
+							wcsncpy_s(devicePath, devicePathCount, pInterfaceDetailData->DevicePath, ~0);
+						}
+						bResult = true;
 					}
 				}
 
 				free(pInterfaceDetailData);
 
-				if (hResult != INVALID_HANDLE_VALUE)
+				if (bResult)
 				{
 					break;
 				}
@@ -78,19 +78,38 @@ static HANDLE OpenUSBDevice(const GUID* interfaceGUID)
 	}
 
 	SetupDiDestroyDeviceInfoList(hDevInfo);
-	return hResult;
+	return bResult;
 }
 
 bool bExitThread = false;
+HANDLE hUSBDevice = INVALID_HANDLE_VALUE;
 
-static void ServiceHIDInputReports(void* hUSBDevice)
+static void OpenAndServiceHIDInputReports(wchar_t* devicePath)
 {
+	hUSBDevice = CreateFile( devicePath,
+		GENERIC_READ | GENERIC_WRITE,
+		FILE_SHARE_READ | FILE_SHARE_WRITE,
+		NULL,
+		OPEN_EXISTING,
+		FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING,
+		NULL);
+	if (hUSBDevice == INVALID_HANDLE_VALUE)
+	{
+		return;
+	}
+
 	PHIDP_PREPARSED_DATA pPreparsedData;
-	HidD_GetPreparsedData(hUSBDevice, &pPreparsedData);
+	if (!HidD_GetPreparsedData(hUSBDevice, &pPreparsedData))
+	{
+		return;
+	}
 
 	HIDP_CAPS caps;
 	ZeroMemory(&caps, sizeof(caps));
-	HidP_GetCaps(pPreparsedData, &caps);
+	if (!HidP_GetCaps(pPreparsedData, &caps))
+	{
+		return;
+	}
 
 	struct PowerMateInput
 	{
@@ -102,28 +121,53 @@ static void ServiceHIDInputReports(void* hUSBDevice)
 	ZeroMemory(&previous, sizeof(PowerMateInput));
 
 	char* inputReport = (char*)alloca(caps.InputReportByteLength);
-	while (!bExitThread)
+
+	bool bDisconnected = false;
+	while (!bExitThread && !bDisconnected)
 	{
-		DWORD bytesRead = 0;
-		if (ReadFile(hUSBDevice, inputReport, caps.InputReportByteLength, &bytesRead, nullptr))
+		OVERLAPPED overlapped;
+		ZeroMemory(&overlapped, sizeof(overlapped));
+		if (ReadFileEx(hUSBDevice, inputReport, caps.InputReportByteLength, &overlapped, NULL))
 		{
-			PowerMateInput& current (*(PowerMateInput*)inputReport);
-			if (current.button != previous.button)
+			bool bReadComplete = false;
+			while (!bDisconnected && !bReadComplete)
 			{
-				OutputDebugFormat("Input Report obtained Knob Press\n");
-				ToggleMute();
-			}
-			else
-			{
-				if (current.dial == (char)0x01)
+				if (WAIT_OBJECT_0 == WaitForSingleObject(hUSBDevice, 10))
 				{
-					OutputDebugFormat("Input Report obtained Knob Right\n");
-					IncreaseVolume();
+					DWORD OverlappedNumberOfBytesTransfered = 0;
+					if (::GetOverlappedResult(hUSBDevice, &overlapped, &OverlappedNumberOfBytesTransfered, false)
+						&& OverlappedNumberOfBytesTransfered == caps.InputReportByteLength)
+					{
+						// data, reset event for next overlapped i/o
+						bReadComplete = true;
+					}
+					else if (GetLastError() == ERROR_DEVICE_NOT_CONNECTED)
+					{
+						bDisconnected = true;
+					}
 				}
-				else if (current.dial == (char)0xFF)
+			}
+
+			if (bReadComplete)
+			{
+				PowerMateInput& current(*(PowerMateInput*)inputReport);
+				if (current.button != previous.button)
 				{
-					OutputDebugFormat("Input Report obtained Knob Left\n");
-					DecreaseVolume();
+					OutputDebugFormat("Input Report obtained Knob Press\n");
+					ToggleMute();
+				}
+				else
+				{
+					if (current.dial == (char)0x01)
+					{
+						OutputDebugFormat("Input Report obtained Knob Right\n");
+						IncreaseVolume();
+					}
+					else if (current.dial == (char)0xFF)
+					{
+						OutputDebugFormat("Input Report obtained Knob Left\n");
+						DecreaseVolume();
+					}
 				}
 			}
 		}
@@ -132,27 +176,27 @@ static void ServiceHIDInputReports(void* hUSBDevice)
 	HidD_FreePreparsedData(pPreparsedData);
 }
 
-HANDLE hUSBDevice = INVALID_HANDLE_VALUE;
+static void PollForDevices(void*)
+{
+	wchar_t devicePath[MAX_PATH];
+	while (!bExitThread)
+	{
+		// this searches for a device in the windows device registry that implements the service guid above, and opens a HANDLE
+		if (FindUSBDevice(devicePath, sizeof(devicePath)/sizeof(devicePath[0])))
+		{
+			OpenAndServiceHIDInputReports(devicePath);
+		}
+
+		Sleep(10);
+	}
+}
+
 HANDLE hThread = INVALID_HANDLE_VALUE;
 
-bool StartupPowerMateUSB()
+void StartupPowerMateUSB()
 {
-	// this guid is from Bluetooth LE Explorer, in the windows store
-	//  the service GUID is the custom service for the custom characteristics on the device
-	//  if this were a heart tracker or something standard it would use a uuid from bluetooth's website
-	GUID interfaceGUID;
-	HidD_GetHidGuid(&interfaceGUID);
-
-	// this searches for a device in the windows device registry that implements the service guid above, and opens a HANDLE
-	hUSBDevice = OpenUSBDevice(&interfaceGUID);
-	if (hUSBDevice == INVALID_HANDLE_VALUE)
-	{
-		return false;
-	}
-
 	// start the background thread to service data
-	hThread = (HANDLE)_beginthread(&ServiceHIDInputReports, 0, hUSBDevice);
-	return hThread != INVALID_HANDLE_VALUE;
+	hThread = (HANDLE)_beginthread(&PollForDevices, 0, nullptr);
 }
 
 void ShutdownPowerMateUSB()

@@ -1,4 +1,4 @@
 #pragma once
 
-bool StartupPowerMateUSB();
+void StartupPowerMateUSB();
 void ShutdownPowerMateUSB();

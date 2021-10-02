@@ -116,22 +116,20 @@ static void ValueChangedEventHandler(BTH_LE_GATT_EVENT_TYPE EventType, PVOID Eve
 
 HANDLE hBluetoothDevice = INVALID_HANDLE_VALUE;
 
-bool StartupPowerMateBluetooth()
+void StartupPowerMateBluetooth()
 {
 	// this guid is from Bluetooth LE Explorer, in the windows store
 	//  the service GUID is the custom service for the custom characteristics on the device
 	//  if this were a heart tracker or something standard it would use a uuid from bluetooth's website
 	GUID interfaceGUID;
-	if (ERROR_SUCCESS != CLSIDFromString(TEXT("{25598CF7-4240-40A6-9910-080F19F91EBC}"), &interfaceGUID))
-	{
-		return false;
-	}
+	HRESULT result = CLSIDFromString(TEXT("{25598CF7-4240-40A6-9910-080F19F91EBC}"), &interfaceGUID);
+	assert(result == ERROR_SUCCESS);
 
 	// this searches for a device in the windows device registry that implements the service guid above, and opens a HANDLE
 	hBluetoothDevice = OpenBluetoothDevice(&interfaceGUID);
 	if (hBluetoothDevice == INVALID_HANDLE_VALUE)
 	{
-		return false;
+		return;
 	}
 
 	// fetch the services array for the device
@@ -201,11 +199,8 @@ bool StartupPowerMateBluetooth()
 		else
 		{
 			OutputDebugFormat("Expected characteristic isn't notifiable!\n");
-			return false;
 		}
 	}
-
-	return true;
 }
 
 void ShutdownPowerMateBluetooth()
