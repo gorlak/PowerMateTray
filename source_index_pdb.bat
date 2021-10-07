@@ -37,7 +37,8 @@ echo SRCSRV: end ------------------------------------------------ >> source_inde
 
 echo:
 echo Adding srcsrv section to %1...
-"%ProgramFiles(x86)%\Windows Kits\10\Debuggers\x64\srcsrv\pdbstr.exe" -w -p:%1 -s:srcsrv -i:source_index.txt
+:: Using x86 here only because Github Actions has issues https://github.com/actions/virtual-environments/issues/4208
+"%ProgramFiles(x86)%\Windows Kits\10\Debuggers\x86\srcsrv\pdbstr.exe" -w -p:%1 -s:srcsrv -i:source_index.txt
 echo pdbstr exited with errorlevel %ERRORLEVEL%
 
 popd
